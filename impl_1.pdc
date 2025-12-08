@@ -1,0 +1,14 @@
+ldc_set_location -site {9} [get_ports miso_an]
+ldc_set_location -site {10} [get_ports mosi_an]
+ldc_set_location -site {11} [get_ports sclk_an]
+ldc_set_location -site {12} [get_ports {ss_an[0]}]
+ldc_set_location -site {13} [get_ports {ss_an[1]}]
+
+ldc_set_location -site {14} [get_ports miso_mem]
+ldc_set_location -site {17} [get_ports mosi_mem]
+ldc_set_location -site {15} [get_ports sclk_mem]
+ldc_set_location -site {16} [get_ports {ss_mem[0]}]
+ldc_set_location -site {18} [get_ports {ss_mem[1]}]
+
+ldc_set_location -site {35} [get_ports reset]
+#ldc_set_location -site {20} [get_ports clk]
