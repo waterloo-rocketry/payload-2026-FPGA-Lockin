@@ -10,15 +10,15 @@ entity NCO is
 		fcw			: std_logic_vector(8 downto 0) := "000000001"
 	);
 	Port(
-		en			: in std_logic;							-- Enable flag to avoid overwriting current value
-		addr_i		: in std_logic_vector(8 downto 0);		-- Address of memory, used to tell when to switch quadrants
-        clk     	: in std_logic;							-- Clock
-        reset   	: in std_logic;							-- Reset
-        addr_sin	: out std_logic_vector(8 downto 0);	-- New address of memory, transformed and for sin
-		neg_sin		: out std_logic;						-- If sin sample should be flipped negative
-		addr_cos	: out std_logic_vector(8 downto 0);	-- New address of memory, transformed and for cos
-		neg_cos		: out std_logic;						-- If cos sample should be flipped negative
-		out_ready	: out std_logic							-- Flag for done
+		enable		: in std_logic;											-- Enable flag to avoid overwriting current value
+		addr_i		: in std_logic_vector(8 downto 0);						-- Address of memory, used to tell when to switch quadrants
+        clk     	: in std_logic;											-- Clock
+        reset   	: in std_logic;											-- Reset
+        addr_sin	: out std_logic_vector(8 downto 0) := "000000000";		-- New address of memory, transformed and for sin
+		neg_sin		: out std_logic := '0';									-- If sin sample should be flipped negative
+		addr_cos	: out std_logic_vector(8 downto 0) := "000000000";		-- New address of memory, transformed and for cos
+		neg_cos		: out std_logic := '0';									-- If cos sample should be flipped negative
+		out_ready	: out std_logic := '0'									-- Flag for done
     );
 end NCO;
 
@@ -34,18 +34,23 @@ begin
 		-- Index variable from address
 		variable idx : integer := 0;
 	begin
-		if reset = '1' then
-			quadrant <= "00";
-			neg_cos <= '0';
-			neg_sin <= '0';
-			addr_sin <= (others => '0');
-			addr_cos <= (others => '0');
-			out_ready <= '0';
-			idx := 0;
-		elsif rising_edge(clk) then
-			if en = '1' then
+		if rising_edge(clk) then
+			if reset = '1' then
+				quadrant <= "00";
+				neg_cos <= '0';
+				neg_sin <= '0';
+				addr_sin <= (others => '0');
+				addr_cos <= (others => '0');
+				out_ready <= '0';
+				idx := 0;
+			elsif enable = '1' then
 				idx := to_integer(unsigned(addr_i));
-			
+				
+				-- if addr + fcw > sample then it overflows next run
+				if (idx + unsigned(fcw)) = n_samples then
+					quadrant <= std_logic_vector(unsigned(quadrant) + 1);
+				end if;
+				
 				-- Quarter look up table, exploits symmetries to save memory
 				case quadrant is
 					when "00" =>
@@ -78,11 +83,8 @@ begin
 						addr_cos <= (others => '0');
 						out_ready <= '0';
 				end case;
-			end if;
-			
-			-- if addr + fcw > sample then it overflows next run
-			if (unsigned(addr_i) + unsigned(fcw)) > n_samples then
-				quadrant <= std_logic_vector(unsigned(quadrant) + 1);
+			else
+				out_ready <= '0';
 			end if;
 		end if;
 	end process;
