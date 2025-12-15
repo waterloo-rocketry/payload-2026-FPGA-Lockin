@@ -38,7 +38,7 @@ architecture test of tb_lockin is
     signal mosi_mem	: std_logic;
 	signal sclk_mem : std_logic;
 	signal ss_mem 	: std_logic_vector(1 downto 0);
-	signal reset : std_logic;
+	signal reset : std_logic := '0';
 	
 	constant clk_period : time := 20 ns;
 

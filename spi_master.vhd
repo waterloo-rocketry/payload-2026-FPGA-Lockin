@@ -33,8 +33,8 @@ entity spi_master is
 end spi_master;
 
 architecture Behavioural of spi_master is
-	signal count : unsigned(5 downto 0) := (others => '0');
-	constant max : integer := 8*n_bytes - 1;
+	signal count : unsigned(7 downto 0) := (others => '0');
+	constant max : integer := (8*n_bytes - 1);
 	
 begin
 	-- Clock divider
@@ -58,12 +58,12 @@ begin
 			case ss_ctrl is
 				when "10" | "01" =>
 					ss <= ss_ctrl;
-					count <= count + 1;
 					
 					-- SCLK Generator
 					clk_count := clk_count + 1;
 			
 					if clk_count = clk_div then
+						count <= count + 1;
 						sclk <= not CPOL;
 						clk_count := "00";
 					else

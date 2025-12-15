@@ -36,7 +36,7 @@ begin
 	-- ==============================
 	-- ==        Delay Line        ==
 	-- ==============================
-	process(clk, reset)
+	process(clk, enable, reset)
     begin
 		if reset = '1' then
 			delay_line <= (others => (others => '0'));
@@ -65,7 +65,7 @@ begin
 	-- ==============================
 	-- ==       16 Sum Line        ==
 	-- ==============================
-	process(clk, reset)
+	process(clk, enable, reset)
     begin
         if reset = '1' then
 			sum_stage1 <= (others => (others => '0'));
@@ -80,7 +80,7 @@ begin
 	-- ==============================
 	-- ==        8 Sum Line        ==
 	-- ==============================
-	process(clk, reset)
+	process(clk, enable, reset)
     begin
         if reset = '1' then
 			sum_stage2 <= (others => (others => '0'));
@@ -94,7 +94,7 @@ begin
 	-- ==============================
 	-- ==        4 Sum Line        ==
 	-- ==============================
-	process(clk, reset)
+	process(clk, enable, reset)
     begin
         if reset = '1' then
 			sum_stage3 <= (others => (others => '0'));
@@ -108,7 +108,7 @@ begin
 	-- ==============================
 	-- ==        2 Sum Line        ==
 	-- ==============================
-	process(clk, reset)
+	process(clk, enable, reset)
     begin
         if reset = '1' then
 			sum_stage4 <= (others => (others => '0'));
@@ -122,7 +122,7 @@ begin
 	-- ==============================
 	-- ==         Data Out         ==
 	-- ==============================
-	process(clk, reset)
+	process(clk, enable, reset)
     begin
         if reset = '1' then
 			data_out <= (others => '0');
