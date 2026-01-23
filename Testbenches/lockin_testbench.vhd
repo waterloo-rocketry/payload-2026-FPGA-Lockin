@@ -47,11 +47,11 @@ begin
     uut: LockinAmp
         Port map (
 			--clk => clk,
-			miso_an => '1',
+			miso_an => miso_an,
 			mosi_an => mosi_an,
 			sclk_an => sclk_an,
 			ss_an => ss_an,
-			miso_mem => '1',
+			miso_mem => miso_mem,
 			mosi_mem => mosi_mem,
 			sclk_mem => sclk_mem,
 			ss_mem => ss_mem,
@@ -71,7 +71,8 @@ begin
     -- Stimulus Process
     stim_proc: process
     begin
-
+		miso_an <= '1';
+		miso_mem <= '1';
         -- End of test
         wait;
     end process stim_proc;
