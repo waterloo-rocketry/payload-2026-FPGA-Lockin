@@ -128,7 +128,7 @@ begin
 			data_out <= (others => '0');
 		elsif rising_edge(clk) then
 			if enable = '1' then
-				data_out <= std_logic_vector(resize(sum_stage4(0) + sum_stage4(1)/ 64, 32));
+				data_out <= std_logic_vector(resize(sum_stage4(0) + sum_stage4(1)/ 32, 32));
 				out_ready <= '1';
 			else
 				out_ready <= '0';

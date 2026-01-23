@@ -34,7 +34,8 @@ end spi_master;
 
 architecture Behavioural of spi_master is
 	signal count : unsigned(7 downto 0) := (others => '0');
-	constant max : integer := (8*n_bytes - 1);
+	constant max : integer := (8*n_bytes);
+	signal soft_reset : std_logic := '0';
 	
 begin
 	-- Clock divider
@@ -45,58 +46,66 @@ begin
 			done <= '0';
 			ss <= "11";
 			count <= (others => '0');
+			clk_count := "00";
 		
 		elsif rising_edge(clk) then
+			ss <= ss_ctrl;
+			
 			if to_integer(count) = max then
 				done <= '1';
 				count <= (others => '0');
-				ss <= "11";
+				sclk <= CPOL;
+				clk_count := "00";
+				--ss <= "11";
 			else
 				done <= '0';
-			end if;
 		
-			case ss_ctrl is
-				when "10" | "01" =>
-					ss <= ss_ctrl;
+				case ss_ctrl is
+					when "10" | "01" =>
+						soft_reset <= '0';
 					
-					-- SCLK Generator
-					clk_count := clk_count + 1;
+						-- SCLK Generator
+						clk_count := clk_count + 1;
 			
-					if clk_count = clk_div then
-						count <= count + 1;
-						sclk <= not CPOL;
-						clk_count := "00";
-					else
-						sclk <= CPOL;
-					end if;
+						if clk_count = clk_div then
+							count <= count + 1;
+							sclk <= not CPOL;
+							clk_count := "00";
+						else
+							sclk <= CPOL;
+						end if;
 					
-				when others =>
-					sclk <= CPOL;
-					ss <= "11";
-					count <= (others => '0');
+					when others =>
+						sclk <= CPOL;
+						--ss <= "11";
+						clk_count := "00";
+						count <= (others => '0');
+						soft_reset <= '1';
 				
 				end case;
+			end if;	
 		end if;
 	end process;
 
 	-- Send and receive
-	process(sclk, reset)
+	process(clk, sclk, reset, soft_reset)
 	begin
 		if reset = '1' then
 			rx_data <= (others => '0');
 			mosi <= 'Z';
-			
+		elsif soft_reset = '1' then
+			rx_data <= (others => '0');
+			mosi <= 'Z';
 		elsif rising_edge(sclk) then
 			case ss_ctrl is
 				when "10" | "01" =>
 					if done = '0' then
 						-- MOSI/MISO Data handling
-						mosi <= tx_data(to_integer(count));
-						rx_data(to_integer(count)) <= miso;
+						mosi <= tx_data(to_integer(count) - 1);
+						rx_data(to_integer(count)- 1) <= miso;
 					end if;
                 
 				when others =>
-					-- Idle/Default State
 					mosi <= 'Z';
 					rx_data <= (others => '0');
                 
