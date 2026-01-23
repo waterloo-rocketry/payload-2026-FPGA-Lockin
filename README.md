@@ -1,0 +1,1 @@
+HDL code for a digital lock-in amplifier designed for the 2026 Polaris payload fibre optic gyroscope. Designed for a Lattice ICE40UP5k FPGA to interface with a DAC, ADC, ROM, and MCU to perform lock-in modulation. For a detailed write up on working principles, see the 2026 preliminary report on our website.
