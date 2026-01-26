@@ -43,7 +43,7 @@ architecture Structural of LockinAmp is
 	
 	-- State machine
 	type machine is(
-		start_acc, start_nco, read_sin, read_cos, send_dac, read_adc, mix, filter, export_i, export_q
+		wait_smp, start_acc, start_nco, read_sin, read_cos, send_dac, read_adc, mix, filter, export_i, export_q
 	);
 	signal state    	: machine := start_acc;
 	
@@ -247,7 +247,8 @@ begin
 			rx_data => rx_data_mem, done => done_mem, reset => reset);
 	
 	process(clk, reset)
-		variable counter : integer := 0;
+		variable counter 		: integer := 0;
+		variable wait_counter	: integer := 0;
 	begin
 		-- ==============================
 		-- ==       State Machine      ==
@@ -261,13 +262,28 @@ begin
 			-- ==============================
 			case state is
 				-- ==============================
+				-- ==      Wait for sample     ==
+				-- ==============================
+				when wait_smp =>
+					-- 1kHz ish read rate
+					if wait_counter = 48000 then
+						state <= start_acc;
+						wait_counter := 0;
+					else
+						-- increment counter
+						wait_counter := wait_counter + 1;
+					end if;
+				
+				-- ==============================
 				-- ==      Start Accum         ==
 				-- ==============================
 				when start_acc =>
 					acc_en <= '1';
 					
+					-- Turn off phase accumulator when done
 					if acc_ready = '1' then
 						acc_en <= '0';
+						-- use phase to find sine wave sample in the ram look up table
 						lut_addr <= acc_phase;
 						state <= start_nco;
 					end if;
@@ -279,8 +295,10 @@ begin
 				when start_nco =>
 					nco_en <= '1';
 					
+					-- Turn off oscillator when sample is done
 					if nco_ready = '1' then
 						nco_en <= '0';
+						-- use corrected address from nco to find what sample to use for sine
 						mem_addr <= sin_addr;
 						state <= read_sin;
 					end if;
@@ -289,10 +307,12 @@ begin
 				-- ==         Read Sin         ==
 				-- ==============================
 				when read_sin => -- 2 clock cycles to read?
+					-- done state. set up to read cosine
 					if counter = 2 then
 						counter := 0;
 						state <= read_cos;
 					else
+						-- if not done, increment counter to know when done.
 						mem_addr <= sin_addr;
 						counter := counter + 1;
 					end if;
@@ -301,12 +321,20 @@ begin
 				-- ==         Read Cos         ==
 				-- ==============================
 				when read_cos =>
+					-- done state, set up tx data for dac send
 					if counter = 2 then
 						counter := 0;
 						tx_data_an <= sin_in;
 						state <= send_dac;
 					else
-						sin_in <= mem_do;
+						-- read the sin on the first iteration of this loop.
+						if sin_neg = '1' then
+							sin_in <= std_logic_vector(-signed(mem_do));
+						else
+							sin_in <= mem_do;
+						end if;
+						
+						-- start cos read
 						mem_addr <= cos_addr;
 						counter := counter + 1;
 					end if;
@@ -315,11 +343,21 @@ begin
 				-- ==        Bias Out          ==
 				-- ==============================
 				when send_dac =>
-					cos_in <= mem_do;
+					-- read the cosine on the first iteration of this loop.
+					if cos_neg = '1' then
+						cos_in <= std_logic_vector(-signed(mem_do));
+					else
+						cos_in <= mem_do;
+					end if;
+					
+					-- pull chip select to dac low
 					ss_ctrl_an <= "10";
 					
+					-- when done sending to dac
 					if done_an = '1' then
+						-- reset chip select
 						ss_ctrl_an <= "11";
+						-- set up adc sample command
 						tx_data_an <= "0000000000000000"; -- adc sample command
 						state <= read_adc;
 					end if;
@@ -329,10 +367,14 @@ begin
 				-- ==        Sample In         ==
 				-- ==============================
 				when read_adc =>
+					-- pull adc chip select low
 					ss_ctrl_an <= "01";
 					
+					-- when done reading
 					if done_an = '1' then
+						-- reset chip select
 						ss_ctrl_an <= "11";
+						-- save read data
 						sample_in <= rx_data_an;
 						state <= mix;
 					end if;
@@ -342,6 +384,7 @@ begin
 				-- ==          Mix             ==
 				-- ==============================
 				when mix =>
+					-- multiply by cos and sin to start demodulation
 					sin_mod <= std_logic_vector(signed(sample_in) * resize(signed(sin_in), 8));
 					cos_mod <= std_logic_vector(signed(sample_in) * resize(signed(cos_in), 8));
 					
@@ -354,16 +397,19 @@ begin
 					sin_en <= '1';
 					cos_en <= '1';
 					
+					-- read lowpassed modulated sin
 					if i_ready = '1' then
 						sin_en <= '0';
 						counter := counter + 1;
 					end if;
 					
+					-- read lowpassed modulated cos
 					if q_ready = '1' then
 						cos_en <= '0';
 						counter := counter + 1;
 					end if;
 					
+					-- set up for exporting i and q
 					if counter = 2 then
 						tx_data_mem <= i_data;
 						state <= export_i;
@@ -392,7 +438,7 @@ begin
 					
 					if done_mem = '1' then
 						ss_ctrl_mem <= "11";
-						state <= start_acc;
+						state <= wait_smp;
 					end if;
 					
 				
