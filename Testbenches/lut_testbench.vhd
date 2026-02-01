@@ -30,10 +30,10 @@ architecture test of tb_NCO is
 		);
 	end component;
 	
-	signal enable : std_logic := '0';
+	signal en : std_logic := '0';
 	signal reset : std_logic := '0';
 	signal clk : std_logic := '0';
-	signal addr_i : std_logic_vector(8 downto 0) := "111111100";
+	signal addr_i : std_logic_vector(8 downto 0) := "000000000";
     signal addr_sin	: std_logic_vector(8 downto 0);
 	signal neg_sin : std_logic;	
 	signal addr_cos	: std_logic_vector(8 downto 0);
@@ -77,9 +77,9 @@ begin
             addr_i <= std_logic_vector(unsigned(addr_i) + 1);
 			wait for 40 ns;
 		
-			enable <= '1';
+			en <= '1';
 			wait until out_ready = '1';
-			enable <= '0';
+			en <= '0';
 			wait for 40 ns;
         end loop;
 		
