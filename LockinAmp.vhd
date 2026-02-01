@@ -65,6 +65,7 @@ architecture Structural of LockinAmp is
 	
 	-- Sin Filter
 	signal sin_in		: std_logic_vector(15 downto 0); -- actually 8 bits
+	signal last_sin		: std_logic_vector(15 downto 0) := "0000000000000000";
 	signal sin_en		: std_logic;
 	signal sin_mod		: std_logic_vector(23 downto 0);
 	signal i_data		: std_logic_vector(31 downto 0);
@@ -72,6 +73,7 @@ architecture Structural of LockinAmp is
 	
 	-- Cos Filter
 	signal cos_in		: std_logic_vector(15 downto 0); -- actually 8 bits
+	signal last_cos		: std_logic_vector(15 downto 0);
 	signal cos_en		: std_logic;
 	signal cos_mod		: std_logic_vector(23 downto 0);
 	signal q_data		: std_logic_vector(31 downto 0);
@@ -334,6 +336,10 @@ begin
 							sin_in <= mem_do;
 						end if;
 						
+						if abs(signed(sin_in) - signed(last_sin)) >=  255 then
+							sin_in <= last_sin;
+						end if;
+						
 						-- start cos read
 						mem_addr <= cos_addr;
 						counter := counter + 1;
@@ -348,6 +354,10 @@ begin
 						cos_in <= std_logic_vector(-signed(mem_do));
 					else
 						cos_in <= mem_do;
+					end if;
+					
+					if abs(signed(cos_in) - signed(last_cos)) >=  200 then
+						cos_in <= last_cos;
 					end if;
 					
 					-- pull chip select to dac low
@@ -369,6 +379,8 @@ begin
 				when read_adc =>
 					-- pull adc chip select low
 					ss_ctrl_an <= "01";
+					last_cos <= cos_in;
+					last_sin <= sin_in;
 					
 					-- when done reading
 					if done_an = '1' then
